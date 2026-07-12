@@ -1,12 +1,23 @@
 import os
 import sys
+import socket
 import requests
+import requests.packages.urllib3.util.connection as urllib3_cn
+
+def allowed_gai_family():
+    return socket.AF_INET # Wymusza IPv4
+
+
 
 def pobierz_zdjecia_epic(data_yyyy_mm_dd):
     rok, miesiac, dzien = data_yyyy_mm_dd.split('-')
     url = f"https://epic.gsfc.nasa.gov/api/natural/date/{data_yyyy_mm_dd}"
     headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+        "Accept-Language": "pl-PL,pl;q=0.9,en-US;q=0.8,en;q=0.7",
+        "Connection": "keep-alive",
+        "Upgrade-Insecure-Requests": "1"
     }
     print(f"--- ETAP 1: Pobieranie dla daty {data_yyyy_mm_dd} ---")
     
@@ -65,5 +76,6 @@ def pobierz_zdjecia_epic(data_yyyy_mm_dd):
     print(f"Zakończono pobieranie do folderu: {nazwa_folderu}\n")
 
 if __name__ == "__main__":
+    urllib3_cn.allowed_gai_family = allowed_gai_family
     wybrana_data = sys.argv[1] if len(sys.argv) > 1 else "2026-07-09"
     pobierz_zdjecia_epic(wybrana_data)
