@@ -17,8 +17,7 @@ def pobierz_zdjecia_epic(data_yyyy_mm_dd):
         
         # To wymusi wyrzucenie błędu, jeśli serwer zwróci cokolwiek innego niż 200 OK (np. 403, 404, 429)
         response.raise_for_status() 
-        
-        dane = response.json()
+        zdjecia = response.json()
         print("Sukces! Pobrano dane.")
     
     except requests.exceptions.Timeout:
@@ -29,7 +28,7 @@ def pobierz_zdjecia_epic(data_yyyy_mm_dd):
     except Exception as e:
         print(f"INNY BŁĄD: {e}")
 
-    zdjecia = response.json()
+    
     if not zdjecia:
         print(f"Brak zdjęć dla daty {data_yyyy_mm_dd}.")
         return

@@ -2,7 +2,7 @@ import subprocess
 import sys
 
 # Ustaw datę, którą chcesz przetworzyć
-wybrana_data = "2026-07-07"
+wybrana_data = "2026-07-05"
 
 skrypty = ["epic_downloader.py", "epic_skaner.py", "stich.py"]
 
