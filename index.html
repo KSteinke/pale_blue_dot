@@ -2,17 +2,41 @@
 <html lang="pl">
 <head>
     <meta charset="UTF-8">
-    <title>Mój Skan Ziemi 3D</title>
+    <title>Mój Skan Ziemi 3D - Animacja</title>
     <style>
         body { margin: 0; overflow: hidden; background-color: #050505; }
         canvas { display: block; }
+        /* Mały napis informujący o ładowaniu tekstur */
+        #loading {
+            position: absolute; top: 20px; left: 20px;
+            color: white; font-family: sans-serif; font-size: 18px;
+        }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 </head>
 <body>
+    <div id="loading">Ładowanie tekstur... (0/0)</div>
+
     <script>
-        // 1. Ustawienie sceny i kamery
+        // =========================================================
+        // 1. LISTA TWOICH ZDJĘĆ Z FOLDERU ASSETS
+        // Wpisz tutaj WSZYSTKIE nazwy plików w odpowiedniej kolejności
+        // Uwaga: używamy zwykłego ukośnika '/', nie backslasha '\'
+        // =========================================================
+        const imagePaths = [
+            'assets/2026-07-06.png',
+            'assets/2026-07-07.png',
+            'assets/2026-07-08.png',
+            'assets/2026-07-09.png',
+            'assets/2026-07-10.png'
+            // Dodaj kolejne...
+        ];
+
+        // Szybkość animacji (w milisekundach). 500 = zmiana zdjęcia co pół sekundy.
+        const animationSpeed = 50; 
+
+        // 2. Ustawienie sceny i kamery
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
         camera.position.z = 15;
@@ -22,41 +46,69 @@
         renderer.setPixelRatio(window.devicePixelRatio);
         document.body.appendChild(renderer.domElement);
 
-        // 2. Dodanie płynnego sterowania myszką
         const controls = new THREE.OrbitControls(camera, renderer.domElement);
-        controls.enableDamping = true; // Nadaje efekt "poślizgu" przy obracaniu
+        controls.enableDamping = true;
         controls.dampingFactor = 0.05;
-        controls.enablePan = false; // Blokuje przesuwanie kuli na boki
+        controls.enablePan = false;
 
-        // 3. Tworzenie geometrii kuli (dużo segmentów dla idealnej krągłości)
         const geometry = new THREE.SphereGeometry(5, 128, 128);
         
-        // =========================================================
-        // TUTAJ ZMIEŃ NAZWĘ PLIKU NA TĘ POBRANĄ Z KREA.AI:
-        const earthTexture = new THREE.TextureLoader().load('assets\\2026-07-10.png'); 
-        // =========================================================
-        
-        // Używamy MeshBasicMaterial, bo nasza mapa z Krea ma już wypalone w sobie światło słoneczne i chmury
-        const material = new THREE.MeshBasicMaterial({ 
-            map: earthTexture 
-        });
-        
+        // Zaczynamy od pustego materiału (bez tekstury)
+        const material = new THREE.MeshBasicMaterial({ color: 0xffffff });
         const earth = new THREE.Mesh(geometry, material);
         scene.add(earth);
 
-        // 4. Pętla renderująca (obraca Ziemię co klatkę)
+        // 3. Wstępne ładowanie (Preload) wszystkich tekstur
+        const textures = [];
+        let loadedCount = 0;
+        const textureLoader = new THREE.TextureLoader();
+        const loadingDiv = document.getElementById('loading');
+
+        loadingDiv.innerText = `Ładowanie tekstur... (0/${imagePaths.length})`;
+
+        imagePaths.forEach((path, index) => {
+            textureLoader.load(path, (texture) => {
+                textures[index] = texture; // Zapisujemy w odpowiedniej kolejności
+                loadedCount++;
+                loadingDiv.innerText = `Ładowanie tekstur... (${loadedCount}/${imagePaths.length})`;
+
+                // Kiedy załaduje się ostatnie zdjęcie, chowamy napis i startujemy z pierwszą teksturą
+                if (loadedCount === imagePaths.length) {
+                    loadingDiv.style.display = 'none';
+                    material.map = textures[0];
+                    material.needsUpdate = true;
+                }
+            });
+        });
+
+        // Zmienne do kontrolowania czasu animacji
+        let currentFrame = 0;
+        let lastTime = Date.now();
+
+        // 4. Pętla renderująca
         function animate() {
             requestAnimationFrame(animate);
             
-            // Automatyczny, powolny obrót Ziemi w okół własnej osi
-            earth.rotation.y += 0.0008; 
+            //earth.rotation.y += 0.0008; // Stały, powolny obrót Ziemi
             
-            controls.update(); // Wymagane dla enableDamping
+            // Jeśli wszystkie tekstury są już załadowane, uruchamiamy zmianę klatek
+            if (loadedCount === imagePaths.length) {
+                const now = Date.now();
+                // Sprawdzamy, czy minął już zadany czas (np. 500ms)
+                if (now - lastTime > animationSpeed) {
+                    currentFrame = (currentFrame + 1) % textures.length; // Przechodzi do następnego, a po ostatnim wraca do 0
+                    material.map = textures[currentFrame];
+                    material.needsUpdate = true; // Informujemy Three.js, że podmieniliśmy obrazek
+                    lastTime = now;
+                }
+            }
+
+            controls.update();
             renderer.render(scene, camera);
         }
         animate();
 
-        // 5. Skalowanie okna (żeby Ziemia nie spłaszczała się przy zmianie rozmiaru przeglądarki)
+        // 5. Skalowanie okna
         window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();

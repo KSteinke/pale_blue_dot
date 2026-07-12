@@ -10,28 +10,31 @@ def pobierz_zdjecia_epic(data_yyyy_mm_dd):
     }
     print(f"--- ETAP 1: Pobieranie dla daty {data_yyyy_mm_dd} ---")
     
+    # KROK 1: Inicjalizacja zmiennej na start. 
+    # Dzięki temu Python NIGDY więcej nie powie, że zmienna nie istnieje.
+    zdjecia = None
+    
     try:
         print(f"Próbuję połączyć z: {url}")
-        # Ustawiamy długi timeout
         response = requests.get(url, headers=headers, timeout=30)
-        
-        # To wymusi wyrzucenie błędu, jeśli serwer zwróci cokolwiek innego niż 200 OK (np. 403, 404, 429)
         response.raise_for_status() 
+        
+        # Jeśli połączenie się udało, przypisujemy dane
         zdjecia = response.json()
-        print("Sukces! Pobrano dane.")
+        print("Sukces! Pobrano listę zdjęć.")
     
     except requests.exceptions.Timeout:
         print("BŁĄD: Prawdziwy Timeout. Serwer NASA milczy od 30 sekund.")
     except requests.exceptions.HTTPError as err:
         print(f"BŁĄD HTTP: Serwer odpowiedział statusem błędu: {err}")
-        print(f"Szczegóły od NASA: {response.text}")
     except Exception as e:
         print(f"INNY BŁĄD: {e}")
 
-    
+    # KROK 2: Jedno główne miejsce weryfikacji.
+    # Jeśli wystąpił błąd wyżej (zdjecia to nadal None) LUB NASA zwróciła pustą listę []
     if not zdjecia:
-        print(f"Brak zdjęć dla daty {data_yyyy_mm_dd}.")
-        return
+        print(f"[STOP] Nie można kontynuować procesu dla daty {data_yyyy_mm_dd} z powodu braku danych.")
+        sys.exit(1) # Zatrzymujemy skrypt i dajemy jasny sygnał do process.py
         
     nazwa_folderu = f"download\\{data_yyyy_mm_dd}"
     os.makedirs(nazwa_folderu, exist_ok=True)
@@ -47,7 +50,6 @@ def pobierz_zdjecia_epic(data_yyyy_mm_dd):
             
         print(f"[{index}/{len(zdjecia)}] Pobieranie {nazwa_pliku} ...")
         try:
-            # Dodany timeout: (10 sekund na połączenie, 60 sekund na odebranie danych)
             img_response = requests.get(url_zdjecia, stream=True, timeout=(10, 60))
             img_response.raise_for_status()
             
@@ -63,6 +65,5 @@ def pobierz_zdjecia_epic(data_yyyy_mm_dd):
     print(f"Zakończono pobieranie do folderu: {nazwa_folderu}\n")
 
 if __name__ == "__main__":
-    # Odbieranie daty od skryptu głównego
     wybrana_data = sys.argv[1] if len(sys.argv) > 1 else "2026-07-09"
     pobierz_zdjecia_epic(wybrana_data)
