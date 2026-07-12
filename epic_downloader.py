@@ -4,19 +4,30 @@ import requests
 
 def pobierz_zdjecia_epic(data_yyyy_mm_dd):
     rok, miesiac, dzien = data_yyyy_mm_dd.split('-')
-    api_url = f"https://epic.gsfc.nasa.gov/api/natural/date/{data_yyyy_mm_dd}"
+    url = f"https://epic.gsfc.nasa.gov/api/natural/date/{data_yyyy_mm_dd}"
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    }
     print(f"--- ETAP 1: Pobieranie dla daty {data_yyyy_mm_dd} ---")
     
     try:
-        # Dodany timeout: 15 sekund na odpowiedź od API
-        response = requests.get(api_url, timeout=15)
-        response.raise_for_status()
+        print(f"Próbuję połączyć z: {url}")
+        # Ustawiamy długi timeout
+        response = requests.get(url, headers=headers, timeout=30)
+        
+        # To wymusi wyrzucenie błędu, jeśli serwer zwróci cokolwiek innego niż 200 OK (np. 403, 404, 429)
+        response.raise_for_status() 
+        
+        dane = response.json()
+        print("Sukces! Pobrano dane.")
+    
     except requests.exceptions.Timeout:
-        print(f"Błąd: Serwer NASA nie odpowiedział w porę przy pobieraniu listy zdjęć (Timeout).")
-        return
-    except requests.exceptions.RequestException as e:
-        print(f"Błąd podczas łączenia z API: {e}")
-        return
+        print("BŁĄD: Prawdziwy Timeout. Serwer NASA milczy od 30 sekund.")
+    except requests.exceptions.HTTPError as err:
+        print(f"BŁĄD HTTP: Serwer odpowiedział statusem błędu: {err}")
+        print(f"Szczegóły od NASA: {response.text}")
+    except Exception as e:
+        print(f"INNY BŁĄD: {e}")
 
     zdjecia = response.json()
     if not zdjecia:
